@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rede de ConfianĂ§a</title>
+<style>
+:root{--bg:#eef1f4;--ink:#17212b;--mut:#5b6877;--card:#fff;--line:#d5dbe2;--trust:#0f766e;--c1:#1d4ed8;--c2:#0f766e;--c3:#9a3412;--err:#b91c1c}
+@media(prefers-color-scheme:dark){:root{--bg:#10151b;--ink:#e8edf2;--mut:#98a4b3;--card:#1a212a;--line:#2b3542;--trust:#2dd4bf;--c1:#7aa2ff;--c2:#2dd4bf;--c3:#fb9b6b;--err:#f87171}}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+main{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.9rem,6vw,2.8rem);line-height:1.05;margin:8px 0 6px;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.15rem;margin:0 0 10px}
+.lead{color:var(--mut);max-width:60ch;margin:0 0 18px}
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 18px;font-size:.95rem}
+.stats b{font-size:1.5rem;margin-right:6px;color:var(--trust)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex:1 1 100%}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:inherit;color:var(--mut);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--trust);font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:9px 10px;width:100%}
+:focus-visible{outline:3px solid var(--trust);outline-offset:2px}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:10px 16px;cursor:pointer;font-weight:600}
+.btn.alt{background:none;color:var(--ink);border:1px solid var(--line)}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.item{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c1);border-radius:4px;padding:14px}
+.item[data-t=servico]{border-left-color:var(--c2)}.item[data-t=vaga]{border-left-color:var(--c3)}
+.item h3{margin:0 0 2px;font-size:1.05rem}
+.meta{color:var(--mut);font-size:.88rem;margin-bottom:8px}
+.item p{margin:0 0 10px;overflow-wrap:anywhere}
+.sel{color:var(--trust);font-size:.85rem;font-weight:600}
+.panel{display:none;max-width:560px}.panel.on{display:block}
+label{display:block;font-size:.9rem;margin:12px 0 4px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px;color:var(--mut);font-size:.9rem;margin:12px 0}
+#msg{min-height:1.4em;margin-top:10px;font-size:.92rem}
+.err{color:var(--err)}.ok{color:var(--trust)}
+code{font-size:.85em;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main>
+<h1>Rede de ConfianĂ§a</h1>
+<p class="lead">ComĂŠrcios, serviĂ§os e vagas de pessoas avalizadas por quem jĂĄ faz parte. Entrada sĂł por indicaĂ§ĂŁo.</p>
+<div class="stats" aria-live="polite"><span><b id="nm">0</b>membros avalizados</span><span><b id="na">0</b>anĂşncios</span></div>
+
+<div class="bar">
+ <div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-p="lista">AnĂşncios</button>
+  <button role="tab" aria-selected="false" data-p="pub">Publicar</button>
+  <button role="tab" aria-selected="false" data-p="aval">Avalizar</button>
+ </div>
+</div>
+
+<section id="lista" class="panel on">
+ <div class="filters">
+  <select id="ft" aria-label="Tipo"><option value="">Todos os tipos</option><option value="comercio">ComĂŠrcio</option><option value="servico">ServiĂ§o</option><option value="vaga">Vaga</option></select>
+  <input id="fc" placeholder="Cidade" aria-label="Cidade">
+  <input id="fk" placeholder="Categoria ou palavra" aria-label="Categoria ou palavra">
+ </div>
+ <div class="grid" id="grid"></div>
+ <p id="vazio" class="lead" hidden>Nenhum anĂşncio de membro avalizado com esses filtros.</p>
+</section>
+
+<section id="pub" class="panel">
+ <h2>Publicar anĂşncio</h2>
+ <div class="note">TĂ­tulo, descriĂ§ĂŁo, cidade e contato sĂŁo criptografados com a chave do grupo. SĂł membros avalizados que receberam a chave conseguem ler. Mesmo assim, evite dados que vocĂŞ nĂŁo toleraria ver vazar.</div>
+ <label for="tipo">Tipo</label>
+ <select id="tipo"><option value="comercio">ComĂŠrcio</option><option value="servico">ServiĂ§o</option><option value="vaga">Vaga</option></select>
+ <label for="tit">TĂ­tulo</label><input id="tit" maxlength="80">
+ <label for="cat">Categoria</label><input id="cat" maxlength="40" placeholder="Ex.: construĂ§ĂŁo, advocacia, TI">
+ <label for="cid">Cidade e estado</label><input id="cid" maxlength="60" placeholder="Ex.: GoiĂ˘nia, GO">
+ <label for="desc">DescriĂ§ĂŁo</label><textarea id="desc" rows="4" maxlength="600"></textarea>
+ <label for="ctt">Contato pĂşblico</label><input id="ctt" maxlength="80" placeholder="Telefone ou e-mail do negĂłcio">
+ <label for="cnpj">CNPJ (opcional)</label><input id="cnpj" inputmode="numeric" maxlength="18">
+ <p><button class="btn" id="enviar">Publicar anĂşncio</button></p>
+</section>
+
+<section id="aval" class="panel">
+ <h2>Avalizar um membro</h2>
+ <div class="note">Avalize sĂł quem vocĂŞ conhece pessoalmente e cujo negĂłcio vocĂŞ jĂĄ viu funcionando. Seu aval fica registrado com a sua assinatura.</div>
+ <label for="alvo">Chave pĂşblica do indicado (formato hexadecimal)</label><input id="alvo" maxlength="64">
+ <p><button class="btn" id="avalizar">Assinar aval</button></p>
+ <h2>SĂł para fundadores</h2>
+ <p><button class="btn alt" id="gerar">Gerar ou trocar chave do grupo</button> <button class="btn alt" id="lista-relay">Copiar lista do relay</button></p>
+ <label for="rev">Revogar membro (chave hexadecimal)</label><input id="rev" maxlength="64">
+ <p><button class="btn alt" id="revogar">Revogar e trocar a chave</button></p>
+ <p class="lead">Sua chave pĂşblica para pedir aval:<br><code id="minha">entre com a extensĂŁo para ver</code></p>
+</section>
+
+<p id="msg" role="status"></p>
+<p><button class="btn alt" id="login">Entrar com extensĂŁo Nostr</button> <span id="quem" class="sel"></span></p>
+</main>
+
+<script>
+const CFG={
+  relays:["wss://SEU-RELAY.exemplo.com"], // relay prĂłprio, sĂł aceita membros (veja relay/politica.py)
+  roots:[],      // chaves pĂşblicas (hex) dos fundadores
+  minAvais:2,    // avais de membros jĂĄ avalizados para entrar
+  ns:"rede-confianca-br"
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const say=(t,bad)=>{const m=$("#msg");m.textContent=t;m.className=bad?"err":"ok"};
+let me=null,ok=new Set(),items=[],ring={},cur=0;
+const ls={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+const b64=u=>btoa(String.fromCharCode(...u)),unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const impKey=raw=>crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]);
+async function enc(o){const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},ring[cur],new TextEncoder().encode(JSON.stringify(o))));
+  return cur+"."+b64(new Uint8Array([...iv,...ct]))}
+async function dec(s){try{const i=s.indexOf("."),k=ring[s.slice(0,i)],u=unb(s.slice(i+1));
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u.slice(0,12)},k,u.slice(12))))}catch{return null}}
+const rawRing=()=>{try{return JSON.parse(ls.get("rc.ring."+me)||"{}")}catch{return{}}};
+async function useRing(r){ls.set("rc.ring."+me,JSON.stringify(r));
+  for(const v in r){ring[v]=await impKey(unb(r[v]));cur=Math.max(cur,+v)}}
+async function sendKey(to){
+  const r=rawRing();
+  if(!Object.keys(r).length||!window.nostr.nip44)return false;
+  try{const c=await window.nostr.nip44.encrypt(to,JSON.stringify(r));
+    const e=await sign(30078,[["d",CFG.ns+":"+to],["p",to]],c);
+    return !!e&&(await publish(e)).some(Boolean)}catch{return false}}
+async function getKey(ws){
+  const r=rawRing();
+  for(const e of ws){
+    const d=(e.tags.find(t=>t[0]==="d")||[])[1]||"";
+    if(!d.startsWith(CFG.ns+":")||!ok.has(e.pubkey))continue;
+    try{const x=JSON.parse(await window.nostr.nip44.decrypt(e.pubkey,e.content));
+      for(const v in x)if(!(v in r))r[v]=x[v]}catch{}}
+  if(Object.keys(r).length)await useRing(r)}
+
+const pool={};
+function resetPool(){Object.values(pool).forEach(p=>p.then(c=>c.ws.close()).catch(()=>{}));for(const k in pool)delete pool[k]}
+function conn(u){
+  if(pool[u])return pool[u];
+  const p=new Promise((res,rej)=>{
+    let ws;try{ws=new WebSocket(u)}catch{return rej()}
+    const c={ws,u,subs:{},oks:{},q:[],authed:false,authId:""};
+    const drop=()=>{if(pool[u]===p)delete pool[u]};
+    ws.onopen=()=>res(c);
+    ws.onerror=()=>{drop();rej()};
+    ws.onclose=drop;
+    ws.onmessage=m=>{let d;try{d=JSON.parse(m.data)}catch{return}
+      const s=c.subs[d[1]];
+      if(d[0]==="AUTH")auth(c,d[1]);
+      else if(d[0]==="EVENT"&&s)s.ev(d[2]);
+      else if(d[0]==="EOSE"&&s)s.end();
+      else if(d[0]==="CLOSED"&&s){
+        if(/^auth-required/.test(d[2]||"")&&!c.authed)c.q.push(()=>ws.send(JSON.stringify(["REQ",d[1],...s.f])));
+        else s.end()}
+      else if(d[0]==="OK"){
+        if(d[1]===c.authId){c.authed=d[2]===true;if(c.authed)c.q.splice(0).forEach(f=>f())}
+        else if(c.oks[d[1]]){const f=c.oks[d[1]];delete c.oks[d[1]];f(d)}}};
+  });
+  pool[u]=p;p.catch(()=>{if(pool[u]===p)delete pool[u]});
+  return p;
+}
+async function auth(c,ch){
+  if(!me||!window.nostr||c.authed)return;
+  try{const e=await window.nostr.signEvent({kind:22242,created_at:Math.floor(Date.now()/1000),
+      tags:[["relay",c.u],["challenge",ch]],content:""});
+    c.authId=e.id;c.ws.send(JSON.stringify(["AUTH",e]))}catch{}}
+
+function query(filters){return new Promise(res=>{
+  const got=new Map();let left=CFG.relays.length;
+  const fin=()=>{if(--left<=0)res([...got.values()])};
+  CFG.relays.forEach(u=>conn(u).then(c=>{
+    const sid=Math.random().toString(36).slice(2);let feito=false;
+    const end=()=>{if(feito)return;feito=true;clearTimeout(t);
+      try{c.ws.send(JSON.stringify(["CLOSE",sid]))}catch{}delete c.subs[sid];fin()};
+    const t=setTimeout(end,6000);
+    c.subs[sid]={f:filters,ev:e=>got.set(e.id,e),end};
+    c.ws.send(JSON.stringify(["REQ",sid,...filters]));
+  }).catch(fin));
+  setTimeout(()=>res([...got.values()]),8000);
+})}
+
+function pub(u,ev){return conn(u).then(c=>new Promise(r=>{
+  const t=setTimeout(()=>r(false),10000);
+  const send=()=>{c.oks[ev.id]=d=>{
+      if(d[2]===true){clearTimeout(t);r(true)}
+      else if(/^auth-required/.test(d[3]||"")&&!c.authed)c.q.push(send);
+      else{clearTimeout(t);r(false)}};
+    c.ws.send(JSON.stringify(["EVENT",ev]))};
+  send()})).catch(()=>false)}
+const publish=ev=>Promise.all(CFG.relays.map(u=>pub(u,ev)));
+
+function trusted(labels){
+  const by={},rev=new Set();
+  labels.forEach(e=>{
+    const p=e.tags.find(t=>t[0]==="p"),l=(e.tags.find(t=>t[0]==="l")||[])[1];
+    if(!p)return;
+    if(l==="revogado"){if(CFG.roots.includes(e.pubkey))rev.add(p[1]);return}
+    if(l==="aval"&&p[1]!==e.pubkey)(by[p[1]]=by[p[1]]||new Set()).add(e.pubkey)});
+  const s=new Set(CFG.roots);let ch=true;
+  while(ch){ch=false;for(const p in by){if(s.has(p)||rev.has(p))continue;
+    let n=0;by[p].forEach(a=>{if(s.has(a))n++});
+    if(n>=CFG.minAvais){s.add(p);ch=true}}}
+  return s;
+}
+
+function cnpjOk(c){c=c.replace(/\D/g,"");if(c.length!==14||/^(\d)\1+$/.test(c))return false;
+  const d=n=>{let s=0,p=n-7;for(let i=0;i<n;i++){s+=c[i]*p--;if(p<2)p=9}const r=s%11;return r<2?0:11-r};
+  return d(12)==c[12]&&d(13)==c[13]}
+
+async function load(){
+  say("CarregandoâŚ");
+  const f=[{kinds:[30402],"#t":[CFG.ns],limit:300},{kinds:[1985],"#L":[CFG.ns],limit:500}];
+  if(me)f.push({kinds:[30078],"#p":[me],limit:50});
+  const ev=await query(f);
+  ok=trusted(ev.filter(e=>e.kind===1985));
+  if(me)await getKey(ev.filter(e=>e.kind===30078));
+  const latest=new Map();
+  ev.filter(e=>e.kind===30402&&ok.has(e.pubkey)).forEach(e=>{
+    const d=(e.tags.find(t=>t[0]==="d")||[])[1]||"",k=e.pubkey+d,o=latest.get(k);
+    if(!o||o.created_at<e.created_at)latest.set(k,e)});
+  items=[];
+  if(ring[cur])for(const e of latest.values()){const o=await dec(e.content);if(o)items.push({...o,at:e.created_at})}
+  items.sort((a,b)=>b.at-a.at);
+  $("#nm").textContent=ok.size;$("#na").textContent=items.length;
+  const aviso=!CFG.roots.length?"Defina os fundadores em CFG.roots para a rede comeĂ§ar.":
+    !me?"Entre com a extensĂŁo para ver os anĂşncios.":
+    !ring[cur]?"VocĂŞ ainda nĂŁo recebeu a chave do grupo. PeĂ§a a quem avalizou vocĂŞ para enviĂĄ-la.":"";
+  say(aviso,!!aviso);
+  draw();
+}
+
+function draw(){
+  const t=$("#ft").value,c=$("#fc").value.toLowerCase(),k=$("#fk").value.toLowerCase();
+  const l=items.filter(i=>(!t||i.tipo===t)&&(!c||i.cid.toLowerCase().includes(c))&&
+    (!k||(i.cat+" "+i.tit+" "+i.desc).toLowerCase().includes(k)));
+  const nome={comercio:"ComĂŠrcio",servico:"ServiĂ§o",vaga:"Vaga"};
+  $("#grid").innerHTML=l.map(i=>`<article class="item" data-t="${esc(i.tipo)}">
+    <h3>${esc(i.tit)}</h3>
+    <div class="meta">${esc(nome[i.tipo]||i.tipo)}, ${esc(i.cat)} em ${esc(i.cid)}</div>
+    <p>${esc(i.desc)}</p>
+    <p>${esc(i.ctt)}</p>
+    <span class="sel">Membro avalizado${i.cnpj?" com CNPJ vĂĄlido":""}</span></article>`).join("");
+  $("#vazio").hidden=l.length>0;
+}
+
+async function sign(kind,tags,content){
+  if(!window.nostr){say("Instale uma extensĂŁo Nostr (como nos2x ou Alby) e entre.",true);return null}
+  if(!me){say("Entre com a extensĂŁo antes.",true);return null}
+  return window.nostr.signEvent({kind,created_at:Math.floor(Date.now()/1000),tags,content});
+}
+
+$("#login").onclick=async()=>{
+  if(!window.nostr){say("Instale uma extensĂŁo Nostr (como nos2x ou Alby).",true);return}
+  try{me=await window.nostr.getPublicKey()}catch{say("A extensĂŁo recusou o acesso.",true);return}
+  $("#minha").textContent=me;
+  resetPool();
+  await useRing(rawRing());
+  await load();
+  $("#quem").textContent=ok.has(me)?"VocĂŞ ĂŠ membro avalizado":"VocĂŞ ainda nĂŁo foi avalizado";
+};
+
+$("#enviar").onclick=async()=>{
+  const v=id=>$(id).value.trim();
+  if(!v("#tit")||!v("#cid")||!v("#desc")||!v("#ctt")){say("Preencha tĂ­tulo, cidade, descriĂ§ĂŁo e contato.",true);return}
+  if(v("#cnpj")&&!cnpjOk(v("#cnpj"))){say("CNPJ invĂĄlido. Confira os nĂşmeros.",true);return}
+  if(!ring[cur]){say("VocĂŞ ainda nĂŁo tem a chave do grupo.",true);return}
+  const corpo=await enc({tipo:$("#tipo").value,tit:v("#tit"),cat:v("#cat")||"geral",cid:v("#cid"),
+    ctt:v("#ctt"),cnpj:v("#cnpj").replace(/\D/g,""),desc:v("#desc")});
+  const e=await sign(30402,[["d",Math.random().toString(36).slice(2,12)],["t",CFG.ns]],corpo);if(!e)return;
+  const r=await publish(e);
+  say(r.some(Boolean)?"AnĂşncio publicado. Ele aparece quando vocĂŞ estiver avalizado.":"Nenhum relay aceitou o anĂşncio. Tente de novo.",!r.some(Boolean));
+  if(r.some(Boolean))setTimeout(load,1500);
+};
+
+$("#avalizar").onclick=async()=>{
+  const p=$("#alvo").value.trim().toLowerCase();
+  if(!/^[0-9a-f]{64}$/.test(p)){say("A chave precisa ter 64 caracteres hexadecimais.",true);return}
+  if(!ok.has(me)){say("SĂł membros avalizados podem avalizar outros.",true);return}
+  const e=await sign(1985,[["L",CFG.ns],["l","aval",CFG.ns],["p",p]],"");if(!e)return;
+  const r=await publish(e);
+  say(r.some(Boolean)?"Aval publicado.":"Nenhum relay aceitou o aval. Tente de novo.",!r.some(Boolean));
+  if(r.some(Boolean))setTimeout(async()=>{await load();
+    if(ok.has(p)&&await sendKey(p))say("Aval publicado e chave do grupo enviada.")},1500);
+};
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id===b.dataset.p));
+});
+["#ft","#fc","#fk"].forEach(s=>$(s).addEventListener("input",draw));
+
+async function novaChave(){
+  const r=rawRing(),v=Object.keys(r).reduce((m,k)=>Math.max(m,+k),0)+1;
+  r[v]=b64(crypto.getRandomValues(new Uint8Array(32)));
+  await useRing(r);
+  const alvos=[...ok];let n=0;
+  for(const a of alvos)if(await sendKey(a))n++;
+  return [n,alvos.length]}
+
+$("#gerar").onclick=async()=>{
+  if(!me||!CFG.roots.includes(me)){say("SĂł fundadores listados em CFG.roots podem trocar a chave.",true);return}
+  if(!confirm("Gerar uma nova versĂŁo da chave e enviar a todos os membros avalizados?"))return;
+  const [n,t]=await novaChave();
+  say(n===t?"Nova chave enviada a "+t+" membros.":"Chave gerada, mas sĂł "+n+" de "+t+" envios deram certo. Sua extensĂŁo precisa suportar NIP-44.",n!==t)};
+
+$("#revogar").onclick=async()=>{
+  const p=$("#rev").value.trim().toLowerCase();
+  if(!me||!CFG.roots.includes(me)){say("SĂł fundadores podem revogar.",true);return}
+  if(!/^[0-9a-f]{64}$/.test(p)||CFG.roots.includes(p)){say("Informe a chave hexadecimal de um membro que nĂŁo seja fundador.",true);return}
+  if(!confirm("Revogar este membro e trocar a chave do grupo?"))return;
+  const e=await sign(1985,[["L",CFG.ns],["l","revogado",CFG.ns],["p",p]],"");if(!e)return;
+  const r=await publish(e);
+  if(!r.some(Boolean)){say("Nenhum relay aceitou a revogaĂ§ĂŁo.",true);return}
+  await new Promise(x=>setTimeout(x,1500));
+  await load();
+  if(ok.has(p)){say("A revogaĂ§ĂŁo ainda nĂŁo propagou. Tente de novo em instantes.",true);return}
+  const [n,t]=await novaChave();
+  say("Membro revogado. Chave nova enviada a "+n+" de "+t+" membros. Atualize allowlist.txt no relay.",n!==t)};
+
+$("#lista-relay").onclick=async()=>{
+  if(!me||!CFG.roots.includes(me)){say("SĂł fundadores podem copiar a lista.",true);return}
+  try{await navigator.clipboard.writeText([...ok].join("\n"));say(ok.size+" chaves copiadas. Cole em allowlist.txt no servidor do relay.")}
+  catch{say("NĂŁo foi possĂ­vel copiar. Libere a ĂĄrea de transferĂŞncia.",true)}
+};
+load();
+</script>
+</body>
+</html>
