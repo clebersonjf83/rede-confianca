@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rede de Confian&#231;a</title>
+<style>
+:root{--bg:#eef1f4;--ink:#17212b;--mut:#5b6877;--card:#fff;--line:#d5dbe2;--trust:#0f766e;--c1:#1d4ed8;--c2:#0f766e;--c3:#9a3412;--err:#b91c1c}
+@media(prefers-color-scheme:dark){:root{--bg:#10151b;--ink:#e8edf2;--mut:#98a4b3;--card:#1a212a;--line:#2b3542;--trust:#2dd4bf;--c1:#7aa2ff;--c2:#2dd4bf;--c3:#fb9b6b;--err:#f87171}}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+main{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.9rem,6vw,2.8rem);line-height:1.05;margin:8px 0 6px;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.15rem;margin:0 0 10px}
+.lead{color:var(--mut);max-width:60ch;margin:0 0 18px}
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 18px;font-size:.95rem}
+.stats b{font-size:1.5rem;margin-right:6px;color:var(--trust)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);flex:1 1 100%}
+.tabs button{white-space:nowrap;background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font:inherit;color:var(--mut);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--trust);font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:9px 10px;width:100%}
+:focus-visible{outline:3px solid var(--trust);outline-offset:2px}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:10px 16px;cursor:pointer;font-weight:600}
+.btn.alt{background:none;color:var(--ink);border:1px solid var(--line)}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.item{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c1);border-radius:4px;padding:14px}
+.item[data-t=servico]{border-left-color:var(--c2)}.item[data-t=vaga]{border-left-color:var(--c3)}
+.item h3{margin:0 0 2px;font-size:1.05rem}
+.meta{color:var(--mut);font-size:.88rem;margin-bottom:8px}
+.item p{margin:0 0 10px;overflow-wrap:anywhere}
+.sel{color:var(--trust);font-size:.85rem;font-weight:600}
+.panel{display:none;max-width:560px}.panel.on{display:block}
+label{display:block;font-size:.9rem;margin:12px 0 4px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px;color:var(--mut);font-size:.9rem;margin:12px 0}
+#msg{min-height:1.4em;margin-top:10px;font-size:.92rem}
+.err{color:var(--err)}.ok{color:var(--trust)}
+code{font-size:.85em;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main>
+<h1>Rede de Confian&#231;a</h1>
+<p class="lead">Com&#233;rcios, servi&#231;os e vagas de pessoas avalizadas por quem j&#225; faz parte. Entrada s&#243; por indica&#231;&#227;o.</p>
+<div class="stats" aria-live="polite"><span><b id="nm">0</b>membros avalizados</span><span><b id="na">0</b>an&#250;ncios</span></div>
+
+<div class="bar">
+ <div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-p="lista">An&#250;ncios</button>
+  <button role="tab" aria-selected="false" data-p="pub">Publicar</button>
+  <button role="tab" aria-selected="false" data-p="meus">Meus an&#250;ncios</button>
+  <button role="tab" aria-selected="false" data-p="aval">Avalizar</button>
+ </div>
+</div>
+
+<section id="lista" class="panel on">
+ <div class="filters">
+  <select id="ft" aria-label="Tipo"><option value="">Todos os tipos</option><option value="comercio">Com&#233;rcio</option><option value="servico">Servi&#231;o</option><option value="vaga">Vaga</option></select>
+  <input id="fc" placeholder="Cidade" aria-label="Cidade">
+  <input id="fk" placeholder="Categoria ou palavra" aria-label="Categoria ou palavra">
+ </div>
+ <div class="grid" id="grid"></div>
+ <p id="vazio" class="lead" hidden>Nenhum an&#250;ncio de membro avalizado com esses filtros.</p>
+</section>
+
+<section id="pub" class="panel">
+ <h2>Publicar an&#250;ncio</h2>
+ <div class="note">T&#237;tulo, descri&#231;&#227;o, cidade e contato s&#227;o criptografados com a chave do grupo. S&#243; membros avalizados que receberam a chave conseguem ler. Mesmo assim, evite dados que voc&#234; n&#227;o toleraria ver vazar.</div>
+ <label for="tipo">Tipo</label>
+ <select id="tipo"><option value="comercio">Com&#233;rcio</option><option value="servico">Servi&#231;o</option><option value="vaga">Vaga</option></select>
+ <label for="tit">T&#237;tulo</label><input id="tit" maxlength="80">
+ <label for="cat">Categoria</label><input id="cat" maxlength="40" placeholder="Ex.: constru&#231;&#227;o, advocacia, TI">
+ <label for="cid">Cidade e estado</label><input id="cid" maxlength="60" placeholder="Ex.: Goi&#226;nia, GO">
+ <label for="desc">Descri&#231;&#227;o</label><textarea id="desc" rows="4" maxlength="600"></textarea>
+ <label for="ctt">Contato p&#250;blico</label><input id="ctt" maxlength="80" placeholder="Telefone ou e-mail do neg&#243;cio">
+ <label for="cnpj">CNPJ (opcional)</label><input id="cnpj" inputmode="numeric" maxlength="18">
+ <label><input type="checkbox" id="okc" style="width:auto"> Declaro que posso divulgar estes dados. Entendo que membros avalizados poder&#227;o l&#234;-los e copi&#225;-los.</label>
+ <p><button class="btn" id="enviar">Publicar an&#250;ncio</button></p>
+</section>
+
+<section id="meus" class="panel">
+ <h2>Meus an&#250;ncios</h2>
+ <div id="meusl"></div>
+ <p><button class="btn alt" id="apagatudo">Apagar todos os meus an&#250;ncios</button></p>
+</section>
+
+<section id="aval" class="panel">
+ <h2>Avalizar um membro</h2>
+ <div class="note">Avalize s&#243; quem voc&#234; conhece pessoalmente e cujo neg&#243;cio voc&#234; j&#225; viu funcionando. Seu aval fica registrado com a sua assinatura.</div>
+ <label for="alvo">Chave p&#250;blica do indicado (npub ou hexadecimal)</label><input id="alvo" maxlength="64">
+ <p><button class="btn" id="avalizar">Assinar aval</button></p>
+ <h2>S&#243; para fundadores</h2>
+ <p><button class="btn alt" id="gerar">Gerar ou trocar chave do grupo</button> <button class="btn alt" id="lista-relay">Copiar lista do relay</button></p>
+ <label for="rev">Revogar membro (npub ou hexadecimal)</label><input id="rev" maxlength="64">
+ <p><button class="btn alt" id="revogar">Revogar e trocar a chave</button></p>
+ <p class="lead">Sua chave p&#250;blica para pedir aval:<br><code id="minha">entre com a extens&#227;o para ver</code></p>
+</section>
+
+<p id="msg" role="status"></p>
+<p><button class="btn alt" id="login">Entrar com extens&#227;o Nostr</button> <span id="quem" class="sel"></span></p>
+</main>
+
+<script>
+const CFG={
+  relays:["wss://nosflare.clebersonjf83.workers.dev","wss://nos.lol"], // principal e reserva
+  roots:["193378532878ac87625275e595b9e9796ee5622564ebb3be18bc8c9f77e2b0e2"], // fundadores (hex)
+  minAvais:2,    // avais de membros j\u00e1 avalizados para entrar
+  ns:"rede-confianca-br"
+};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"'"}[c]));
+const say=(t,bad)=>{const m=$("#msg");m.textContent=t;m.className=bad?"err":"ok"};
+const B32="qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+function pm(v){let c=1;for(const x of v){const b=c>>25;c=((c&0x1ffffff)<<5)^x;for(let i=0;i<5;i++)if((b>>i)&1)c^=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3][i]}return c}
+const hrp=[..."npub"].map(c=>c.charCodeAt(0)>>5).concat([0],[..."npub"].map(c=>c.charCodeAt(0)&31));
+function conv(d,f,t,pad){let a=0,b=0;const r=[],m=(1<<t)-1;for(const v of d){a=(a<<f)|v;b+=f;while(b>=t){b-=t;r.push((a>>b)&m)}a&=(1<<b)-1}if(pad&&b)r.push((a<<(t-b))&m);return r}
+function npubOf(h){const d=conv(h.match(/../g).map(x=>parseInt(x,16)),8,5,true),m=pm(hrp.concat(d,[0,0,0,0,0,0]))^1;
+  return "npub1"+d.concat([0,1,2,3,4,5].map(i=>(m>>(5*(5-i)))&31)).map(x=>B32[x]).join("")}
+function toHex(s){s=s.trim().toLowerCase();if(/^[0-9a-f]{64}$/.test(s))return s;
+  if(!s.startsWith("npub1"))return null;const d=[...s.slice(5)].map(c=>B32.indexOf(c));
+  if(d.includes(-1)||d.length<7||pm(hrp.concat(d))!==1)return null;
+  const b=conv(d.slice(0,-6),5,8,false);return b.length===32?b.map(x=>x.toString(16).padStart(2,"0")).join(""):null}
+let editId="";
+let me=null,ok=new Set(),items=[],ring={},cur=0;
+const ls={get:k=>{try{return localStorage.getItem(k)}catch{return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}}};
+const b64=u=>btoa(String.fromCharCode(...u)),unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const impKey=raw=>crypto.subtle.importKey("raw",raw,"AES-GCM",true,["encrypt","decrypt"]);
+async function enc(o){const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},ring[cur],new TextEncoder().encode(JSON.stringify(o))));
+  return cur+"."+b64(new Uint8Array([...iv,...ct]))}
+async function dec(s){try{const i=s.indexOf("."),k=ring[s.slice(0,i)],u=unb(s.slice(i+1));
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u.slice(0,12)},k,u.slice(12))))}catch{return null}}
+const rawRing=()=>{try{return JSON.parse(ls.get("rc.ring."+me)||"{}")}catch{return{}}};
+async function useRing(r){ls.set("rc.ring."+me,JSON.stringify(r));
+  for(const v in r){ring[v]=await impKey(unb(r[v]));cur=Math.max(cur,+v)}}
+async function sendKey(to){
+  const r=rawRing();
+  if(!Object.keys(r).length||!window.nostr.nip44)return false;
+  try{const c=await window.nostr.nip44.encrypt(to,JSON.stringify(r));
+    const e=await sign(30078,[["d",CFG.ns+":"+to],["p",to]],c);
+    return !!e&&(await publish(e)).some(Boolean)}catch{return false}}
+const sha=async b=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",b))].map(x=>x.toString(16).padStart(2,"0")).join("");
+async function fixarHashes(r){for(const v in r){
+  const e=await sign(1985,[["L",CFG.ns],["l","chave",CFG.ns],["v",v],["h",await sha(unb(r[v]))]],"");if(e)await publish(e)}}
+async function getKey(ws,hashes){
+  const r=rawRing();
+  for(const e of ws){
+    const d=(e.tags.find(t=>t[0]==="d")||[])[1]||"";
+    if(!d.startsWith(CFG.ns+":")||!ok.has(e.pubkey))continue;
+    try{const x=JSON.parse(await window.nostr.nip44.decrypt(e.pubkey,e.content));
+      for(const v in x)if(!(v in r)&&hashes[v]&&await sha(unb(x[v]))===hashes[v])r[v]=x[v]}catch{}}
+  if(Object.keys(r).length)await useRing(r)}
+
+const pool={};
+function resetPool(){Object.values(pool).forEach(p=>p.then(c=>c.ws.close()).catch(()=>{}));for(const k in pool)delete pool[k]}
+function conn(u){
+  if(pool[u])return pool[u];
+  const p=new Promise((res,rej)=>{
+    let ws;try{ws=new WebSocket(u)}catch{return rej()}
+    const c={ws,u,subs:{},oks:{},q:[],authed:false,authId:""};
+    const drop=()=>{if(pool[u]===p)delete pool[u]};
+    ws.onopen=()=>res(c);
+    ws.onerror=()=>{drop();rej()};
+    ws.onclose=drop;
+    ws.onmessage=m=>{let d;try{d=JSON.parse(m.data)}catch{return}
+      const s=c.subs[d[1]];
+      if(d[0]==="AUTH")auth(c,d[1]);
+      else if(d[0]==="EVENT"&&s)s.ev(d[2]);
+      else if(d[0]==="EOSE"&&s)s.end();
+      else if(d[0]==="CLOSED"&&s){
+        if(/^auth-required/.test(d[2]||"")&&!c.authed)c.q.push(()=>ws.send(JSON.stringify(["REQ",d[1],...s.f])));
+        else s.end()}
+      else if(d[0]==="OK"){
+        if(d[1]===c.authId){c.authed=d[2]===true;if(c.authed)c.q.splice(0).forEach(f=>f())}
+        else if(c.oks[d[1]]){const f=c.oks[d[1]];delete c.oks[d[1]];f(d)}}};
+  });
+  pool[u]=p;p.catch(()=>{if(pool[u]===p)delete pool[u]});
+  return p;
+}
+async function auth(c,ch){
+  if(!me||!window.nostr||c.authed)return;
+  try{const e=await window.nostr.signEvent({kind:22242,created_at:Math.floor(Date.now()/1000),
+      tags:[["relay",c.u],["challenge",ch]],content:""});
+    c.authId=e.id;c.ws.send(JSON.stringify(["AUTH",e]))}catch{}}
+
+function query(filters){return new Promise(res=>{
+  const got=new Map();let left=CFG.relays.length;
+  const fin=()=>{if(--left<=0)res([...got.values()])};
+  CFG.relays.forEach(u=>conn(u).then(c=>{
+    const sid=Math.random().toString(36).slice(2);let feito=false;
+    const end=()=>{if(feito)return;feito=true;clearTimeout(t);
+      try{c.ws.send(JSON.stringify(["CLOSE",sid]))}catch{}delete c.subs[sid];fin()};
+    const t=setTimeout(end,6000);
+    c.subs[sid]={f:filters,ev:e=>got.set(e.id,e),end};
+    c.ws.send(JSON.stringify(["REQ",sid,...filters]));
+  }).catch(fin));
+  setTimeout(()=>res([...got.values()]),8000);
+})}
+
+function pub(u,ev){return conn(u).then(c=>new Promise(r=>{
+  const t=setTimeout(()=>r(false),10000);
+  const send=()=>{c.oks[ev.id]=d=>{
+      if(d[2]===true){clearTimeout(t);r(true)}
+      else if(/^auth-required/.test(d[3]||"")&&!c.authed)c.q.push(send);
+      else{clearTimeout(t);r(false)}};
+    c.ws.send(JSON.stringify(["EVENT",ev]))};
+  send()})).catch(()=>false)}
+const publish=ev=>Promise.all(CFG.relays.map(u=>pub(u,ev)));
+
+function trusted(labels){
+  const by={},rev=new Set();
+  labels.forEach(e=>{
+    const p=e.tags.find(t=>t[0]==="p"),l=(e.tags.find(t=>t[0]==="l")||[])[1];
+    if(!p)return;
+    if(l==="revogado"){if(CFG.roots.includes(e.pubkey))rev.add(p[1]);return}
+    if(l==="aval"&&p[1]!==e.pubkey)(by[p[1]]=by[p[1]]||new Set()).add(e.pubkey)});
+  const s=new Set(CFG.roots);let ch=true;
+  while(ch){ch=false;for(const p in by){if(s.has(p)||rev.has(p))continue;
+    let n=0;by[p].forEach(a=>{if(s.has(a))n++});
+    if(n>=CFG.minAvais){s.add(p);ch=true}}}
+  return s;
+}
+
+function cnpjOk(c){c=c.replace(/\D/g,"");if(c.length!==14||/^(\d)\1+$/.test(c))return false;
+  const d=n=>{let s=0,p=n-7;for(let i=0;i<n;i++){s+=c[i]*p--;if(p<2)p=9}const r=s%11;return r<2?0:11-r};
+  return d(12)==c[12]&&d(13)==c[13]}
+
+async function load(){
+  say("Carregando\u2026");
+  const f=[{kinds:[30402],"#t":[CFG.ns],limit:300},{kinds:[1985],"#L":[CFG.ns],limit:500}];
+  if(me)f.push({kinds:[30078],"#p":[me],limit:50});
+  const ev=await query(f);
+  ok=trusted(ev.filter(e=>e.kind===1985));
+  const hashes={};
+  ev.filter(e=>e.kind===1985&&CFG.roots.includes(e.pubkey)).forEach(e=>{
+    const g=n=>(e.tags.find(t=>t[0]===n)||[])[1];if(g("l")==="chave")hashes[g("v")]=g("h")});
+  if(me)await getKey(ev.filter(e=>e.kind===30078),hashes);
+  const latest=new Map();
+  ev.filter(e=>e.kind===30402&&ok.has(e.pubkey)).forEach(e=>{
+    const d=(e.tags.find(t=>t[0]==="d")||[])[1]||"",k=e.pubkey+d,o=latest.get(k);
+    if(!o||o.created_at<e.created_at)latest.set(k,e)});
+  items=[];
+  if(ring[cur])for(const e of latest.values()){const o=await dec(e.content);if(o&&!o.apagado)items.push({...o,at:e.created_at,pk:e.pubkey,d:(e.tags.find(t=>t[0]==="d")||[])[1]})}
+  items.sort((a,b)=>b.at-a.at);
+  $("#nm").textContent=ok.size;$("#na").textContent=items.length;
+  const aviso=!CFG.roots.length?"Defina os fundadores em CFG.roots para a rede come\u00e7ar.":
+    !me?"Entre com a extens\u00e3o para ver os an\u00fancios.":
+    !ring[cur]?"Voc\u00ea ainda n\u00e3o recebeu a chave do grupo. Pe\u00e7a a quem avalizou voc\u00ea para envi\u00e1-la.":"";
+  say(aviso,!!aviso);
+  draw();
+}
+
+function draw(){
+  const t=$("#ft").value,c=$("#fc").value.toLowerCase(),k=$("#fk").value.toLowerCase();
+  const l=items.filter(i=>(!t||i.tipo===t)&&(!c||i.cid.toLowerCase().includes(c))&&
+    (!k||(i.cat+" "+i.tit+" "+i.desc).toLowerCase().includes(k)));
+  const nome={comercio:"Com\u00e9rcio",servico:"Servi\u00e7o",vaga:"Vaga"};
+  $("#grid").innerHTML=l.map(i=>`<article class="item" data-t="${esc(i.tipo)}">
+    <h3>${esc(i.tit)}</h3>
+    <div class="meta">${esc(nome[i.tipo]||i.tipo)}, ${esc(i.cat)} em ${esc(i.cid)}</div>
+    <p>${esc(i.desc)}</p>
+    <p>${esc(i.ctt)}</p>
+    <span class="sel">Membro avalizado${i.cnpj?" com CNPJ v\u00e1lido":""}</span></article>`).join("");
+  $("#vazio").hidden=l.length>0;
+  drawMeus();
+}
+
+async function sign(kind,tags,content){
+  if(!window.nostr){say("Instale uma extens\u00e3o Nostr (como nos2x ou Alby) e entre.",true);return null}
+  if(!me){say("Entre com a extens\u00e3o antes.",true);return null}
+  return window.nostr.signEvent({kind,created_at:Math.floor(Date.now()/1000),tags,content});
+}
+
+$("#login").onclick=async()=>{
+  if(!window.nostr){say("Instale uma extens\u00e3o Nostr (como nos2x ou Alby).",true);return}
+  try{me=await window.nostr.getPublicKey()}catch{say("A extens\u00e3o recusou o acesso.",true);return}
+  $("#minha").textContent=npubOf(me);
+  resetPool();
+  await useRing(rawRing());
+  await load();
+  $("#quem").textContent=ok.has(me)?"Voc\u00ea \u00e9 membro avalizado":"Voc\u00ea ainda n\u00e3o foi avalizado";
+};
+
+$("#enviar").onclick=async()=>{
+  const v=id=>$(id).value.trim();
+  if(!v("#tit")||!v("#cid")||!v("#desc")||!v("#ctt")){say("Preencha t\u00edtulo, cidade, descri\u00e7\u00e3o e contato.",true);return}
+  if(!$("#okc").checked){say("Marque a declara\u00e7\u00e3o de consentimento.",true);return}
+  if(v("#cnpj")&&!cnpjOk(v("#cnpj"))){say("CNPJ inv\u00e1lido. Confira os n\u00fameros.",true);return}
+  if(!ring[cur]){say("Voc\u00ea ainda n\u00e3o tem a chave do grupo.",true);return}
+  const corpo=await enc({tipo:$("#tipo").value,tit:v("#tit"),cat:v("#cat")||"geral",cid:v("#cid"),
+    ctt:v("#ctt"),cnpj:v("#cnpj").replace(/\D/g,""),desc:v("#desc")});
+  const e=await sign(30402,[["d",editId||Math.random().toString(36).slice(2,12)],["t",CFG.ns]],corpo);if(!e)return;
+  const r=await publish(e);
+  say(r.some(Boolean)?"An\u00fancio publicado. Ele aparece quando voc\u00ea estiver avalizado.":"Nenhum relay aceitou o an\u00fancio. Tente de novo.",!r.some(Boolean));
+  if(r.some(Boolean)){editId="";$("#enviar").textContent="Publicar an\u00fancio";setTimeout(load,1500)}
+};
+
+$("#avalizar").onclick=async()=>{
+  const p=toHex($("#alvo").value);
+  if(!p){say("Chave inv\u00e1lida. Use o npub ou os 64 caracteres hexadecimais.",true);return}
+  if(!ok.has(me)){say("S\u00f3 membros avalizados podem avalizar outros.",true);return}
+  const e=await sign(1985,[["L",CFG.ns],["l","aval",CFG.ns],["p",p]],"");if(!e)return;
+  const r=await publish(e);
+  say(r.some(Boolean)?"Aval publicado.":"Nenhum relay aceitou o aval. Tente de novo.",!r.some(Boolean));
+  if(r.some(Boolean))setTimeout(async()=>{await load();
+    if(ok.has(p)&&await sendKey(p))say("Aval publicado e chave do grupo enviada.")},1500);
+};
+
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("on",p.id===b.dataset.p));
+});
+["#ft","#fc","#fk"].forEach(s=>$(s).addEventListener("input",draw));
+
+function aba(p){document.querySelector('.tabs button[data-p="'+p+'"]').click()}
+function drawMeus(){
+  const l=items.filter(i=>i.pk===me);
+  $("#meusl").innerHTML=l.length?l.map((i,n)=>`<div class="item" data-t="${esc(i.tipo)}"><h3>${esc(i.tit)}</h3><div class="meta">${esc(i.cid)}</div><p><button class="btn alt" data-e="${n}">Editar</button> <button class="btn alt" data-x="${n}">Apagar</button></p></div>`).join(""):'<p class="lead">Voc\u00ea n\u00e3o tem an\u00fancios.</p>';
+}
+async function apagar(l){let n=0;
+  for(const i of l){const e=await sign(30402,[["d",i.d],["t",CFG.ns]],await enc({apagado:true}));
+    if(e&&(await publish(e)).some(Boolean))n++}
+  say(n+" an\u00fancio(s) apagado(s).",n!==l.length);setTimeout(load,1500)}
+$("#meusl").onclick=async ev=>{const b=ev.target.closest("button");if(!b)return;
+  const l=items.filter(i=>i.pk===me);
+  if(b.dataset.e!==undefined){const i=l[+b.dataset.e];
+    $("#tipo").value=i.tipo;$("#tit").value=i.tit;$("#cat").value=i.cat;$("#cid").value=i.cid;
+    $("#desc").value=i.desc;$("#ctt").value=i.ctt;$("#cnpj").value=i.cnpj||"";
+    editId=i.d;$("#enviar").textContent="Salvar altera\u00e7\u00f5es";aba("pub")}
+  else if(b.dataset.x!==undefined&&confirm("Apagar este an\u00fancio?"))await apagar([l[+b.dataset.x]])};
+$("#apagatudo").onclick=()=>{const l=items.filter(i=>i.pk===me);
+  if(!l.length){say("Voc\u00ea n\u00e3o tem an\u00fancios.",true);return}
+  if(confirm("Apagar todos os seus an\u00fancios? Seu aval continua: para sair da rede, pe\u00e7a a um fundador para revogar sua chave."))apagar(l)};
+
+
+async function novaChave(){
+  const r=rawRing(),v=Object.keys(r).reduce((m,k)=>Math.max(m,+k),0)+1;
+  r[v]=b64(crypto.getRandomValues(new Uint8Array(32)));
+  await useRing(r);
+  await fixarHashes(r);
+  const alvos=[...ok];let n=0;
+  for(const a of alvos)if(await sendKey(a))n++;
+  return [n,alvos.length]}
+
+$("#gerar").onclick=async()=>{
+  if(!me||!CFG.roots.includes(me)){say("S\u00f3 fundadores listados em CFG.roots podem trocar a chave.",true);return}
+  if(!confirm("Gerar uma nova vers\u00e3o da chave e enviar a todos os membros avalizados?"))return;
+  const [n,t]=await novaChave();
+  say(n===t?"Nova chave enviada a "+t+" membros.":"Chave gerada, mas s\u00f3 "+n+" de "+t+" envios deram certo. Sua extens\u00e3o precisa suportar NIP-44.",n!==t)};
+
+$("#revogar").onclick=async()=>{
+  const p=toHex($("#rev").value);
+  if(!me||!CFG.roots.includes(me)){say("S\u00f3 fundadores podem revogar.",true);return}
+  if(!p||CFG.roots.includes(p)){say("Informe a chave hexadecimal de um membro que n\u00e3o seja fundador.",true);return}
+  if(!confirm("Revogar este membro e trocar a chave do grupo?"))return;
+  const e=await sign(1985,[["L",CFG.ns],["l","revogado",CFG.ns],["p",p]],"");if(!e)return;
+  const r=await publish(e);
+  if(!r.some(Boolean)){say("Nenhum relay aceitou a revoga\u00e7\u00e3o.",true);return}
+  await new Promise(x=>setTimeout(x,1500));
+  await load();
+  if(ok.has(p)){say("A revoga\u00e7\u00e3o ainda n\u00e3o propagou. Tente de novo em instantes.",true);return}
+  const [n,t]=await novaChave();
+  say("Membro revogado. Chave nova enviada a "+n+" de "+t+" membros. Atualize allowlist.txt no relay.",n!==t)};
+
+$("#lista-relay").onclick=async()=>{
+  if(!me||!CFG.roots.includes(me)){say("S\u00f3 fundadores podem copiar a lista.",true);return}
+  try{await navigator.clipboard.writeText([...ok].join("\n"));say(ok.size+" chaves copiadas. Cole em allowlist.txt no servidor do relay.")}
+  catch{say("N\u00e3o foi poss\u00edvel copiar. Libere a \u00e1rea de transfer\u00eancia.",true)}
+};
+load();
+</script>
+</body>
+</html>
